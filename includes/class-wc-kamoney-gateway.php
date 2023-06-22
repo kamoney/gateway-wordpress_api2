@@ -35,7 +35,7 @@ class WC_Kamoney_Gateway extends WC_Payment_Gateway
         }
 
         // Kamoney API
-        $this->api = new Kamoney($this->kamoney_public_key, $this->kamoney_secret_key);
+        $this->api = new Kamoney($this->kamoney_id_merchant);
 
         // Active logs.
         if ('yes' === $this->debug) {
@@ -76,16 +76,11 @@ class WC_Kamoney_Gateway extends WC_Payment_Gateway
                 'default' => 'Você será redirecionado para https://www.kamoney.com.br para efetuar o pagamento',
                 'css' => 'max-width:400px;',
             ),
-            'kamoney_public_key' => array(
-                'title' => 'Chave pública Kamoney',
+            'kamoney_id_merchant' => array(
+                'title' => 'ID de Comerciante Kamoney',
                 'type' => 'text',
-                'desc_tip' => 'Esta é a chave pública fornecida pelo kamoney.com.br quando você se inscreveu em uma conta.',
+                'desc_tip' => 'Acesse o menu "Comerciante/Sobre o Gateway e procure por Plug-in Wordpress. Lá vocÊ conseguirá visualizar seu ID.',
                 'default' => '',
-            ),
-            'kamoney_secret_key' => array(
-                'title' => 'Chave secreta Kamoney',
-                'type' => 'password',
-                'desc_tip' => 'Essa é a chave secreta fornecida pelo kamoney.com.br quando você se inscreveu em uma conta.',
             ),
             'debug' => array(
                 'title' => 'Modo de depuração',
@@ -124,9 +119,9 @@ class WC_Kamoney_Gateway extends WC_Payment_Gateway
     public function is_available()
     {
         // Test if is valid for use.
-        $test = $this->api->statusServiceOrder();
+        $test = $this->api->status_merchant();
 
-        $available = 'yes' === $this->get_option('enabled') && !array_key_exists("error", $test) && false !== $test && $this->using_supported_currency();
+        $available = 'yes' === $this->get_option('enabled') && true === $test->success && false === $test->data->maintenance && $this->using_supported_currency();
         return $available;
     }
 
@@ -139,13 +134,15 @@ class WC_Kamoney_Gateway extends WC_Payment_Gateway
         $url = '';
 
         $data = array(
+            // "merchant_id" => $this->kamoney_id_merchant,
             "amount" => $this->get_order_total(),
             "order_id" => $order_id,
+            "additional_info" => "Venda realizada pelo Plug-In Wordpress",
             "callback" => WC()->api_request_url('wc_gateway_kamoney_payment'),
             'redirect' => $order->get_view_order_url(),//
         );
 
-        $sale = $this->api->salesCreateChk($data);
+        $sale = $this->api->merchant_create($data);
 
         if ('yes' === $this->debug) {
             $this->log->add($this->id, $sale["error"]);

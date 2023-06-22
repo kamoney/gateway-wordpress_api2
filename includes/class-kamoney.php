@@ -12,14 +12,12 @@ if (!defined('ABSPATH')) {
 
 class Kamoney
 {
-    private $public_key = '';
-    private $secret_key = '';
-    private $api = "https://api2.kamoney.com.br";
+    private $id_merchant = '';
+    private $api = "https://homolog-api2.kamoney.com.br";
 
-    public function __construct($public_key, $secret_key)
+    public function __construct($id_merchant)
     {
-        $this->public_key = $public_key;
-        $this->secret_key = $secret_key;
+        $this->id_merchant = $id_merchant;
     }
 
     private function query($endpoint, $data = array(), $type = 'GET')
@@ -27,13 +25,14 @@ class Kamoney
         // create sign
         $mt = explode(' ', microtime());
         $req['nonce'] = $mt[1] . substr($mt[0], 2, 6);
+        $req['merchant_id'] = $this->id_merchant;
 
         foreach ($data as $key => $value) {
             $req[$key] = $value;
         }
 
-        $data_query = http_build_query($req, '', '&');
-        $sign = hash_hmac('sha512', $data_query, $this->secret_key);
+        // $data_query = http_build_query($req, '', '&');
+        // $sign = hash_hmac('sha512', $data_query, $this->secret_key);
 
         $url = $this->api . $endpoint;
 
@@ -43,10 +42,10 @@ class Kamoney
             'redirection' => '0',
             'httpversion' => '1.0',
             'blocking' => true,
-            'headers' => array(
-                "public" => $this->public_key,
-                "sign" => $sign,
-            ),
+            // 'headers' => array(
+            //     "public" => $this->public_key,
+            //     "sign" => $sign,
+            // ),
             'cookies' => array(),
         );
 
@@ -59,12 +58,12 @@ class Kamoney
         return json_decode($response['body'], true);
     }
 
-    public function statusServiceOrder()
+    public function status_merchant()
     {
-        return $this->query("/public/status");
+        return $this->query("/public/services/merchant");
     }
 
-    public function salesCreateChk($data)
+    public function merchant_create($data)
     {
         return $this->query("/private/merchant", $data, 'POST');
     }
